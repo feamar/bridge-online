@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f5132">
+  <title>Bridge Oefenen</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main id="lobby" class="view">
+    <h1>Bridge Oefenen</h1>
+    <p class="lead">Oefen samen het bieden tegen computertegenstanders.</p>
+    <label>Je naam <input id="name" autocomplete="nickname" maxlength="20"></label>
+    <button id="create" class="primary">Nieuwe tafel</button>
+    <div class="or">of</div>
+    <label>Tafelcode <input id="code" maxlength="4" autocapitalize="characters" placeholder="ABCD"></label>
+    <button id="join">Meedoen</button>
+    <p id="lobby-error" class="error" hidden></p>
+  </main>
+
+  <main id="game" class="view" hidden>
+    <header class="bar">
+      <div><strong>Spel <span id="board"></span></strong> · Gever <span id="dealer"></span> · <span id="vul"></span></div>
+      <button id="share" class="link">Tafel <span id="table-code"></span></button>
+    </header>
+    <p id="status" class="status"></p>
+
+    <table id="auction">
+      <thead><tr><th data-seat="W"></th><th data-seat="N"></th><th data-seat="E"></th><th data-seat="S"></th></tr></thead>
+      <tbody></tbody>
+    </table>
+
+    <section id="my-hand" class="hand"></section>
+
+    <section id="bidbox">
+      <div class="levels"></div>
+      <div class="strains"></div>
+      <div class="specials">
+        <button data-call="P" class="pass">Pas</button>
+        <button data-call="X" class="dbl">X</button>
+        <button data-call="XX" class="rdbl">XX</button>
+      </div>
+    </section>
+
+    <section id="result" hidden>
+      <div class="compass">
+        <div class="hand n" data-seat="N"></div>
+        <div class="hand w" data-seat="W"></div>
+        <div class="hand e" data-seat="E"></div>
+        <div class="hand s" data-seat="S"></div>
+      </div>
+      <button id="next" class="primary">Volgend spel</button>
+    </section>
+
+    <p id="game-error" class="error" hidden></p>
+    <button id="leave" class="link small">Tafel verlaten</button>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

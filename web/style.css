@@ -1,0 +1,93 @@
+:root {
+  --felt: #0f5132;
+  --felt-dark: #0a3a24;
+  --paper: #ffffff;
+  --ink: #1b1f1d;
+  --muted: #5d6a63;
+  --line: #d5ddd8;
+  --red: #c62828;
+  --accent: #f2b705;
+  --bg: #eef3f0;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #1c2420;
+    --ink: #e8efeb;
+    --muted: #9aa9a1;
+    --line: #34423b;
+    --red: #ff6b6b;
+    --bg: #111814;
+  }
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font: 16px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+}
+.view { max-width: 480px; margin: 0 auto; padding: 16px; }
+[hidden] { display: none !important; }
+
+h1 { color: var(--felt); margin: 24px 0 4px; }
+@media (prefers-color-scheme: dark) { h1 { color: #6fcf97; } }
+.lead { color: var(--muted); margin-top: 0; }
+label { display: block; margin: 16px 0 8px; font-weight: 600; }
+input {
+  display: block; width: 100%; margin-top: 6px; padding: 12px;
+  font-size: 18px; border: 1px solid var(--line); border-radius: 10px;
+  background: var(--paper); color: var(--ink);
+}
+#code { text-transform: uppercase; letter-spacing: 4px; }
+button {
+  font: inherit; border: 1px solid var(--line); border-radius: 10px;
+  padding: 12px; background: var(--paper); color: var(--ink); cursor: pointer;
+}
+button:disabled { opacity: .3; cursor: default; }
+button.primary { width: 100%; background: var(--felt); border-color: var(--felt); color: #fff; font-weight: 600; }
+#join { width: 100%; }
+button.link { border: none; background: none; color: inherit; text-decoration: underline; padding: 4px; }
+button.small { font-size: 14px; color: var(--muted); margin-top: 24px; }
+.or { text-align: center; color: var(--muted); margin: 16px 0 0; }
+.error { color: var(--red); font-weight: 600; }
+
+.bar {
+  display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  background: var(--felt); color: #fff; padding: 10px 12px; border-radius: 12px; font-size: 14px;
+}
+.status { min-height: 1.4em; font-weight: 600; margin: 12px 0; }
+
+#auction { width: 100%; border-collapse: collapse; background: var(--paper); border-radius: 12px; overflow: hidden; table-layout: fixed; }
+#auction th { background: var(--felt-dark); color: #fff; font-size: 13px; padding: 6px 2px; }
+#auction th.vul { background: var(--red); }
+#auction th.me { text-decoration: underline; }
+#auction td { text-align: center; padding: 6px 2px; height: 34px; font-weight: 600; border-top: 1px solid var(--line); }
+#auction td.next { background: color-mix(in srgb, var(--accent) 30%, transparent); }
+
+.red { color: var(--red); }
+.hand { background: var(--paper); border-radius: 12px; padding: 10px 12px; margin: 12px 0; }
+.hand .who { font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+.hand .suit { font-size: 20px; letter-spacing: 1px; white-space: nowrap; }
+.hand .suit .sym { display: inline-block; width: 1.3em; }
+
+#bidbox { background: var(--paper); border-radius: 12px; padding: 10px; display: grid; gap: 8px; }
+#bidbox .levels, #bidbox .strains { display: grid; gap: 6px; }
+#bidbox .levels { grid-template-columns: repeat(7, 1fr); }
+#bidbox .strains { grid-template-columns: repeat(5, 1fr); }
+#bidbox .specials { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 6px; }
+#bidbox button { padding: 12px 0; font-size: 18px; font-weight: 600; }
+#bidbox button.selected { background: var(--accent); border-color: var(--accent); color: #000; }
+#bidbox .pass { background: #2e7d32; color: #fff; border-color: #2e7d32; }
+#bidbox .dbl { background: var(--red); color: #fff; border-color: var(--red); }
+#bidbox .rdbl { background: #1565c0; color: #fff; border-color: #1565c0; }
+#bidbox.waiting { opacity: .5; pointer-events: none; }
+
+.compass { display: grid; grid-template-columns: 1fr 1fr; grid-template-areas: "n n" "w e" "s s"; gap: 8px; }
+.compass .hand { margin: 0; }
+.compass .n { grid-area: n; justify-self: center; min-width: 50%; }
+.compass .s { grid-area: s; justify-self: center; min-width: 50%; }
+.compass .w { grid-area: w; }
+.compass .e { grid-area: e; }
+.compass .hand .suit { font-size: 16px; }
+#result .primary { margin-top: 12px; }
