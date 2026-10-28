@@ -27,12 +27,15 @@
       <div><strong>Spel <span id="board"></span></strong> · Gever <span id="dealer"></span> · <span id="vul"></span></div>
       <button id="share" class="link">Tafel <span id="table-code"></span></button>
     </header>
+    <p id="ai-warning" class="warning" hidden>BEN is niet bereikbaar, dus de tegenstanders passen nu. Controleer of BEN draait op de pc.</p>
     <p id="status" class="status"></p>
 
     <table id="auction">
       <thead><tr><th data-seat="W"></th><th data-seat="N"></th><th data-seat="E"></th><th data-seat="S"></th></tr></thead>
       <tbody></tbody>
     </table>
+
+    <p id="explain" class="explain" hidden></p>
 
     <section id="my-hand" class="hand"></section>
 
@@ -53,6 +56,7 @@
         <div class="hand e" data-seat="E"></div>
         <div class="hand s" data-seat="S"></div>
       </div>
+      <div id="review"></div>
       <button id="next" class="primary">Volgend spel</button>
     </section>
 

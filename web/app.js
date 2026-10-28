@@ -13,6 +13,8 @@ let session = loadSession();
 let socket = null;
 let state = null;
 let selectedLevel = null;
+let publicUrl = "";
+let explainIndex = null;
 
 function loadSession() {
   try { return JSON.parse(localStorage.getItem("bridge-session")); } catch { return null; }
@@ -78,16 +80,26 @@ function render() {
 
   // Auction grid in W N E S columns, starting at the dealer's column.
   const order = ["W", "N", "E", "S"];
-  const cells = Array(order.indexOf(s.dealer)).fill("");
+  const offset = order.indexOf(s.dealer);
+  const cells = Array(offset).fill("");
   s.calls.forEach((c) => cells.push(callHtml(c)));
   const nextIndex = s.over ? -1 : cells.length;
   cells.push("");
   while (cells.length % 4) cells.push("");
   let rows = "";
   for (let i = 0; i < cells.length; i += 4) {
-    rows += "<tr>" + cells.slice(i, i + 4).map((c, j) => `<td${i + j === nextIndex ? ' class="next"' : ""}>${c}</td>`).join("") + "</tr>";
+    rows += "<tr>" + cells.slice(i, i + 4).map((c, j) => {
+      const callIndex = i + j - offset;
+      const cls = [];
+      if (i + j === nextIndex) cls.push("next");
+      if (s.explanations[callIndex]) cls.push("has-explain");
+      const attrs = s.explanations[callIndex] ? ` data-index="${callIndex}"` : "";
+      return `<td class="${cls.join(" ")}"${attrs}>${c}</td>`;
+    }).join("") + "</tr>";
   }
   $("#auction tbody").innerHTML = rows;
+  renderExplain();
+  $("#ai-warning").hidden = s.ai.available;
 
   $("#my-hand").innerHTML = handHtml(s.hands[s.seat], `Jouw hand · ${s.hcp[s.seat]} punten`);
 
@@ -109,9 +121,100 @@ function render() {
       const seat = el.dataset.seat;
       el.innerHTML = handHtml(s.hands[seat], `${seatLabel(seat)} · ${s.hcp[seat]} pt`);
     });
+    renderReview();
   } else {
     renderBidBox();
   }
+}
+
+// BEN's explanations use BBA notation such as "!S" for a spade symbol.
+function explanationHtml(text) {
+  return escapeHtml(text).replace(/!([SHDC])/g, (_, st) => strainHtml(st)).replace(/\bNT\b/g, "SA");
+}
+
+function renderExplain() {
+  const text = explainIndex !== null && state.explanations[explainIndex];
+  $("#explain").hidden = !text;
+  if (text) {
+    const seat = seatOfCall(explainIndex);
+    $("#explain").innerHTML = `<strong>${SEAT_NL[seat]} ${callHtml(state.calls[explainIndex])}</strong>: ${explanationHtml(text)}`;
+  }
+}
+
+function seatOfCall(index) {
+  const seats = ["N", "E", "S", "W"];
+  return seats[(seats.indexOf(state.dealer) + index) % 4];
+}
+
+function contractHtml(c) {
+  return `${c.level}${strainHtml(c.strain)}${c.doubled}`;
+}
+
+function scoreHtml(score) {
+  if (score > 0) return `<span class="score-plus">+${score}</span>`;
+  if (score < 0) return `<span class="score-min">${score}</span>`;
+  return "0";
+}
+
+function resultText(result) {
+  if (result === 0) return "precies gemaakt";
+  if (result > 0) return `gemaakt met ${result} overslag${result > 1 ? "en" : ""}`;
+  return `${-result} down`;
+}
+
+function renderReview() {
+  const s = state;
+  const r = s.review;
+  if (!r) { $("#review").innerHTML = ""; return; }
+  const parts = [];
+
+  if (!r.dd) {
+    parts.push(`<div class="card"><h2>Analyse</h2><p class="muted">Bezig met de double-dummy analyse…</p></div>`);
+  } else {
+    const dd = r.dd;
+    let contractLine;
+    if (s.contract) {
+      const c = s.contract;
+      contractLine = `<p>Jullie contract ${contractHtml(c)} door ${SEAT_NL[c.declarer]}: ${dd.contract.tricks} slagen bij perfect spel, ${resultText(dd.contract.result)}. Score voor jullie: ${scoreHtml(dd.contract.score)}.</p>`;
+    } else {
+      contractLine = `<p>Het spel is doorgepast. Score voor jullie: 0.</p>`;
+    }
+    const par = dd.par.contracts.length
+      ? dd.par.contracts.map((c) => `${contractHtml(c)} door ${SEAT_NL[c.declarer]}`).join(" of ")
+      : "doorpassen";
+    const diff = dd.contract.score - dd.par.score;
+    const verdict = diff === 0 ? "Precies de par-score." : diff > 0 ? `Dat is ${diff} punten beter dan par.` : `Dat is ${-diff} punten minder dan par.`;
+    parts.push(`<div class="card"><h2>Resultaat</h2>${contractLine}
+      <p>Par: ${par}, ${scoreHtml(dd.par.score)} voor jullie. ${verdict}</p></div>`);
+
+    const strains = ["C", "D", "H", "S", "NT"];
+    const seats = ["N", "S", "E", "W"];
+    const head = `<tr><th></th>${strains.map((st) => `<th>${strainHtml(st)}</th>`).join("")}</tr>`;
+    const body = seats.map((seat) => `<tr><th>${SEAT_NL[seat]}</th>${strains.map((st) => {
+      const n = dd.tricks[st][seat];
+      const cls = [n >= 7 ? "makes" : ""];
+      if (s.contract && s.contract.declarer === seat && s.contract.strain === st) cls.push("contract");
+      return `<td class="${cls.join(" ")}">${n}</td>`;
+    }).join("")}</tr>`).join("");
+    parts.push(`<div class="card"><h2>Slagen bij open kaart</h2><table class="dd">${head}${body}</table>
+      <p class="muted">Aantal slagen dat elke speler als leider maakt in elke kleur, als iedereen perfect speelt.</p></div>`);
+  }
+
+  if (r.benStatus !== "off") {
+    const items = r.ben.map((b) => `<li class="${b.same ? "same" : "diff"}">
+        <span class="verdict">${b.same ? "✓" : "BEN: " + callHtml(b.ben)}</span>
+        ${SEAT_NL[b.seat]} bood ${callHtml(b.call)}
+        ${!b.same && b.explanation ? `<span class="why">${callHtml(b.ben)}: ${explanationHtml(b.explanation)}</span>` : ""}
+      </li>`).join("");
+    let note = "";
+    if (r.benStatus === "pending") note = `<p class="muted">BEN bekijkt jullie biedingen…</p>`;
+    if (r.benStatus === "unavailable") note = `<p class="muted">BEN is niet bereikbaar, dus de vergelijking ontbreekt.</p>`;
+    const same = r.ben.filter((b) => b.same).length;
+    const summary = r.benStatus === "done" ? `<p>${same} van de ${r.ben.length} biedingen ${same === 1 ? "is" : "zijn"} gelijk aan wat BEN zou bieden.</p>` : "";
+    parts.push(`<div class="card"><h2>Wat zou BEN bieden?</h2>${summary}<ul class="ben-list">${items}</ul>${note}</div>`);
+  }
+
+  $("#review").innerHTML = parts.join("");
 }
 
 function renderBidBox() {
@@ -152,6 +255,7 @@ function connect() {
   socket.onmessage = (ev) => {
     const msg = JSON.parse(ev.data);
     if (msg.type === "state") {
+      if (state && state.board !== msg.state.board) explainIndex = null;
       state = msg.state;
       showView("game");
       render();
@@ -215,10 +319,17 @@ $("#bidbox").addEventListener("click", (ev) => {
   }
 });
 
+$("#auction").addEventListener("click", (ev) => {
+  const td = ev.target.closest("td[data-index]");
+  const index = td ? Number(td.dataset.index) : null;
+  explainIndex = index === explainIndex ? null : index;
+  renderExplain();
+});
+
 $("#next").onclick = () => socket?.send(JSON.stringify({ type: "next" }));
 
 $("#share").onclick = async () => {
-  const url = `${location.origin}/?t=${state.table}`;
+  const url = `${publicUrl || location.origin}/?t=${state.table}`;
   const text = `Doe mee aan mijn bridgetafel, code ${state.table}`;
   if (navigator.share) {
     try { await navigator.share({ title: "Bridge Oefenen", text, url }); } catch {}
@@ -239,6 +350,8 @@ $("#leave").onclick = () => {
 try { $("#name").value = localStorage.getItem("bridge-name") || ""; } catch {}
 const invite = new URLSearchParams(location.search).get("t");
 if (invite) $("#code").value = invite.toUpperCase();
+
+fetch("/api/config").then((r) => r.json()).then((c) => { publicUrl = (c.publicUrl || "").replace(/\/$/, ""); }).catch(() => {});
 
 if (session && !invite) connect();
 else showView("lobby");
