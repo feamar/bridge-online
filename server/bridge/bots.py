@@ -1,23 +1,34 @@
-"""Bidders for the computer-controlled seats (East and West).
-
-Step 1 ships a bot that always passes. The BEN engine plugs in later through
-the same interface.
-"""
+"""Bidders for the computer-controlled seats (East and West)."""
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Protocol
 
 from .auction import Auction
 from .cards import Hand
 
 
+@dataclass
+class Suggestion:
+    call: str
+    explanation: str = ""
+
+
 class Bidder(Protocol):
-    async def choose_call(
+    name: str
+    available: bool
+
+    async def suggest(
         self, seat: str, hand: Hand, auction: Auction, vulnerability: str
-    ) -> str: ...
+    ) -> Suggestion: ...
 
 
 class PassBidder:
-    async def choose_call(self, seat, hand, auction, vulnerability) -> str:
-        return "P"
+    """Always passes. Used when no engine is configured."""
+
+    name = "Pas-robot"
+    available = True
+
+    async def suggest(self, seat, hand, auction, vulnerability) -> Suggestion:
+        return Suggestion("P")

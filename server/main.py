@@ -6,6 +6,8 @@ Start with:  python -m uvicorn main:app --host 0.0.0.0 --port 8000
 from __future__ import annotations
 
 import asyncio
+import logging
+import os
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
@@ -13,13 +15,32 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from bridge.auction import IllegalCall
+from bridge.ben import DEFAULT_SYSTEM, DEFAULT_URL, BenBidder, BenClient
 from bridge.bots import PassBidder
 from bridge.table import TableRegistry
 
 WEB_DIR = Path(__file__).resolve().parent.parent / "web"
 
+# Configuration through environment variables (see README):
+#   BRIDGE_AI    "ben" (default) or "pass" for opponents that always pass
+#   BEN_URL      address of BEN's gameapi, default http://127.0.0.1:8085
+#   BEN_SYSTEM   bidding system BEN plays, default SAYC
+#   PUBLIC_URL   address your partner uses (the tunnel), used for invite links
+logging.basicConfig(level=logging.INFO)
+
+if os.environ.get("BRIDGE_AI", "ben").lower() == "pass":
+    _bidder, _advisor = PassBidder(), None
+else:
+    _advisor = BenClient(os.environ.get("BEN_URL", DEFAULT_URL), os.environ.get("BEN_SYSTEM", DEFAULT_SYSTEM))
+    _bidder = BenBidder(_advisor)
+
 app = FastAPI(title="Bridge Online")
-tables = TableRegistry(PassBidder)
+tables = TableRegistry(lambda: _bidder, _advisor)
+
+
+@app.get("/api/config")
+async def config():
+    return {"publicUrl": os.environ.get("PUBLIC_URL", ""), "ai": _bidder.name}
 
 
 class JoinRequest(BaseModel):
